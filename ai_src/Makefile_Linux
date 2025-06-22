@@ -28,7 +28,7 @@ HEADERS = $(SOURCES:.cpp=.hpp)
 SHARE_HEADERS = $(SHARE_SOURCES:.cpp=.hpp)
 LEARN_HEADERS = $(LEARN_SOURCES:.cpp=.hpp)
 
-TARGET = libai.so
+TARGET = libai.a
 
 $(OBJDIR)/%.o: $(SRCDIR)/%.cpp $(SRCDIR)/%.hpp
 	$(COMPILER) $< -c $(CFLAGS) $(WFLAGS) $(LIBS) -o $@
@@ -40,10 +40,10 @@ $(LEARN_OBJDIR)/%.o: $(LEARN_DIR)/%.cpp $(LEARN_DIR)/%.hpp
 	$(COMPILER) $< -c $(CFLAGS) $(WFLAGS) $(LIBS) -o $@
 	
 $(TARGET): $(OBJECTS) $(SHARE_OBJECTS) $(LEARN_OBJECTS)
-	$(COMPILER) -shared $(OBJECTS) $(SHARE_OBJECTS) $(LEARN_OBJECTS) $(CFLAGS) $(WFLAGS) $(LIBS) -o $@
+	ar rcs $(TARGET) $(OBJECTS) $(SHARE_OBJECTS) $(LEARN_OBJECTS)
 	cp $(TARGET) ../
 
-all: clean $(TARGET) copy
+all: clean $(TARGET)
 	
 test:
 	echo $(SHARE_OBJECTS)

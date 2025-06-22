@@ -4,7 +4,8 @@ WFLAGS = -pedantic -Wignored-qualifiers -Wreturn-type -Wmaybe-uninitialized -Wbo
 
 OPTGTK = 
 
-LIBS = -lboost_system -I./ -L./ -lai
+# Keep system libraries, remove specific libai flags
+LIBS = -lboost_system
 
 SRCDIR = .
 SHARE_DIR = share
@@ -26,14 +27,16 @@ SHARE_HEADERS = $(SHARE_SOURCES:.cpp=.hpp)
 
 TARGET = system.exe
 
-$(TARGET):  $(OBJECTS) $(SHARE_OBJECTS)
-	$(COMPILER) $(OBJECTS) $(SHARE_OBJECTS) $(CFLAGS) $(WFLAGS) $(LIBS) -o $@
+# Add libai.a as a prerequisite and link it directly.
+# Ensure CFLAGS (which include -pthread and -fopenmp) are used in linking.
+$(TARGET):  $(OBJECTS) $(SHARE_OBJECTS) libai.a
+	$(COMPILER) $(OBJECTS) $(SHARE_OBJECTS) $(CFLAGS) $(WFLAGS) ./libai.a $(LIBS) -o $@
 
 $(OBJDIR)/%.o: $(SRCDIR)/%.cpp $(SRCDIR)/%.hpp
-	$(COMPILER) $< -c $(CFLAGS) $(WFLAGS) $(OPTGTK) $(LIBS) -o $@
+	$(COMPILER) $< -c $(CFLAGS) $(WFLAGS) $(OPTGTK) -I./ -o $@
 
 $(SHARE_OBJDIR)/%.o: $(SHARE_DIR)/%.cpp $(SHARE_DIR)/%.hpp
-	$(COMPILER) $< -c $(CFLAGS) $(WFLAGS) $(LIBS) -o $@
+	$(COMPILER) $< -c $(CFLAGS) $(WFLAGS) -I./ -I$(SHARE_DIR) -o $@
 
 test:
 	echo $(SHARE_OBJECTS)
