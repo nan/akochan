@@ -36,7 +36,172 @@ void usage() {
   printf("     id: 0,1,2,3\n");
 }
 
+#include <stdexcept> // For std::runtime_error
+#include <vector>    // For std::vector with _NSGetExecutablePath
+#include <string>    // For std::string manipulation
+#include <algorithm> // For std::max
+#include <iostream>  // For error reporting
+
+// Platform-specific includes for path resolution
+#ifdef _WIN32
+#include <windows.h>
+#include <stdlib.h> // For _fullpath
+#ifndef PATH_MAX
+#define PATH_MAX MAX_PATH
+#endif
+#elif __linux__
+#include <unistd.h>   // For readlink, getcwd
+#include <limits.h>   // For PATH_MAX
+#include <stdlib.h>   // For realpath
+#elif __APPLE__
+#include <mach-o/dyld.h> // For _NSGetExecutablePath
+#include <unistd.h>      // For getcwd
+#include <stdlib.h>      // For realpath
+// PATH_MAX might be in limits.h or sys/syslimits.h on macOS
+#ifndef PATH_MAX
+#include <sys/syslimits.h>
+#endif
+#else
+// Fallback for other POSIX-like systems
+#include <unistd.h>   // For readlink (might be available), getcwd
+#include <stdlib.h>   // For realpath
+#include <limits.h>   // For PATH_MAX
+#endif
+
+// Ensure PATH_MAX is defined, otherwise provide a fallback.
+#ifndef PATH_MAX
+#warning "PATH_MAX not defined by system headers, using default 4096"
+#define PATH_MAX 4096
+#endif
+
+std::string executable_path_str; // Definition of the global variable (declared extern in main.hpp)
+
+// Function to find the last directory separator
+static size_t find_last_separator(const std::string& path) {
+#ifdef _WIN32
+    size_t pos1 = path.rfind('\\');
+    size_t pos2 = path.rfind('/');
+    if (pos1 == std::string::npos) return pos2; // If no backslash, check for forward slash
+    if (pos2 == std::string::npos) return pos1; // If no forward slash, return backslash pos
+    return std::max(pos1, pos2); // Return the last occurrence of either
+#else
+    return path.rfind('/'); // POSIX systems only use forward slash
+#endif
+}
+
+// Initializes executable_path_str with the directory containing the executable.
+void initialize_executable_path(const char* argv0) {
+    std::string full_path_str;
+    char buffer[PATH_MAX];
+
+#ifdef _WIN32
+    wchar_t w_buffer[PATH_MAX];
+    if (GetModuleFileNameW(NULL, w_buffer, PATH_MAX) != 0) {
+        int size_needed = WideCharToMultiByte(CP_UTF8, 0, w_buffer, -1, NULL, 0, NULL, NULL);
+        if (size_needed > 0 && size_needed <= PATH_MAX) {
+            std::vector<char> utf8_buffer(size_needed);
+            if (WideCharToMultiByte(CP_UTF8, 0, w_buffer, -1, &utf8_buffer[0], size_needed, NULL, NULL) != 0) {
+                full_path_str.assign(&utf8_buffer[0]);
+            }
+        }
+    }
+#elif __linux__
+    ssize_t len = readlink("/proc/self/exe", buffer, sizeof(buffer) - 1);
+    if (len != -1) {
+        buffer[len] = '\0';
+        full_path_str = buffer;
+    }
+#elif __APPLE__
+    uint32_t size = sizeof(buffer);
+    if (_NSGetExecutablePath(buffer, &size) == 0) {
+        full_path_str = buffer;
+    } else { // Buffer too small, size is updated to required size
+        std::vector<char> apple_buffer(size);
+        if (_NSGetExecutablePath(&apple_buffer[0], &size) == 0) {
+            full_path_str.assign(&apple_buffer[0]);
+        }
+    }
+#endif
+
+    // Fallback to argv[0] if platform-specific methods failed
+    if (full_path_str.empty() && argv0 != nullptr && argv0[0] != '\0') {
+        char resolved_path_buf[PATH_MAX];
+#ifdef _WIN32
+        if (_fullpath(resolved_path_buf, argv0, PATH_MAX) != NULL) {
+            full_path_str = resolved_path_buf;
+        }
+#else // POSIX
+        if (realpath(argv0, resolved_path_buf) != NULL) {
+            full_path_str = resolved_path_buf;
+        } else {
+            // If realpath fails, and argv0 is relative, prepend CWD
+            if (argv0[0] != '/') { // Not an absolute path
+                 if (getcwd(buffer, sizeof(buffer) -1) != NULL) {
+                    std::string current_dir = buffer;
+                    if (!current_dir.empty() && current_dir.back() != '/') {
+                        current_dir += '/';
+                    }
+                    full_path_str = current_dir + argv0;
+                    // Try realpath again on the CWD + argv0 path
+                    if(realpath(full_path_str.c_str(), resolved_path_buf) != NULL) {
+                        full_path_str = resolved_path_buf;
+                    }
+                 }
+            }
+        }
+#endif
+    }
+
+    if (full_path_str.empty()) {
+        std::cerr << "Warning: Could not determine executable path from API or argv[0]. Falling back to CWD for resources." << std::endl;
+        if (getcwd(buffer, sizeof(buffer) -1) != NULL) {
+            executable_path_str = buffer;
+        } else {
+            throw std::runtime_error("Critical: Failed to determine executable path and CWD.");
+        }
+    } else {
+        size_t last_sep = find_last_separator(full_path_str);
+        if (last_sep != std::string::npos) {
+            executable_path_str = full_path_str.substr(0, last_sep);
+        } else {
+            // No separator, assume CWD (e.g. if program run from PATH without full path)
+            std::cerr << "Warning: Executable path '" << full_path_str << "' has no directory separator. Using CWD for resources." << std::endl;
+            if (getcwd(buffer, sizeof(buffer) -1) != NULL) {
+                executable_path_str = buffer;
+            } else {
+                throw std::runtime_error("Critical: Executable path has no separators and CWD failed.");
+            }
+        }
+    }
+
+    // Normalize path to end with a separator
+    if (!executable_path_str.empty() && find_last_separator(executable_path_str) != executable_path_str.length() -1 ) {
+        executable_path_str += '/'; // Use '/' consistently
+    }
+     // std::cout << "Executable directory initialized to: " << executable_path_str << std::endl; // For debugging
+}
+
+// Getter for the executable directory path
+std::string get_executable_dir() {
+    if (executable_path_str.empty()) {
+        // This indicates initialization failed or was skipped.
+        // initialize_executable_path should throw if it fails critically.
+        // However, if it fell back to CWD and CWD was empty (highly unlikely), this could be hit.
+        throw std::runtime_error("Executable directory path is empty. Initialization might have failed.");
+    }
+    return executable_path_str;
+}
+
 int main(int argc,char* argv[]) {
+    try {
+        initialize_executable_path(argv[0]);
+    } catch (const std::exception& e) {
+        std::cerr << "Error during initialization: " << e.what() << std::endl;
+        // Decide if the program can continue or must exit.
+        // For this specific problem, if path isn't found, file loading will fail.
+        return 1; // Exit if path initialization fails
+    }
+
     if (argc >= 2 && strcmp(argv[1], "test") == 0) {
         const json11::Json& setup_match_json = load_json_from_file("setup_match.json");
         const std::string match_dir_name = setup_match_json["result_dir"].string_value();
