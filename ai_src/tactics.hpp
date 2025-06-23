@@ -87,11 +87,18 @@ public:
     Tactics(const json11::Json& tactics_input_json);
 
     void set_common();
-    void set_default();
-    void set_light();
-    void set_zero_first();
+    void set_default(); // Default strategy
+    void set_light();   // A lighter, possibly faster, version of the default strategy
+    void set_zero_first(); // A strategy variant, possibly for specific early game states
+    void set_aggressive_early_game(); // Strategy focused on speed and opening hand in early game
+    void set_defensive_late_game();   // Strategy focused on risk aversion in late game or against threats
 
-    void set_from_json(const json11::Json& tactics_json);
+    // To add a new strategy:
+    // 1. Declare a new set_your_strategy_name() method here.
+    // 2. Implement this method in tactics.cpp, calling set_common() and then adjusting parameters.
+    // 3. Add your_strategy_name to the if-else chain in set_from_json() in tactics.cpp.
+    // 4. (Optional) Create a JSON file or modify an existing one to use "your_strategy_name" as a base.
+    void set_from_json(const json11::Json& tactics_json); // Loads tactics from a JSON object
 };
 
 int cal_titoi_change_num_max(const int titoi_shanten_num, const int mentu_shanten_num);

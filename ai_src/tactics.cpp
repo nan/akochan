@@ -150,11 +150,85 @@ void Tactics::set_zero_first(){
     tsumo_enumerate_restriction = 10000;
 }
 
+// Strategy focused on aggressive play in the early stages of the game.
+// Aims for quick hand completion, possibly by being more willing to open the hand (fuuro)
+// and being less conservative about discards.
+void Tactics::set_aggressive_early_game(){
+    set_common(); // Start with common defaults
+
+    // Prioritize speed and opening hand
+    do_speed_modify = true;
+    fuuro_num_max = 4; // More willing to open hand
+    dora_fuuro_coeff = 1.2; // Slightly more aggressive on dora calls
+
+    // Focus on simpler, faster hands, less deep tegawari search for higher shanten
+    tegawari_num[0] = 2; // 0 shanten
+    tegawari_num[1] = 1; // 1 shanten
+    tegawari_num[2] = 1; // 2 shanten
+    tegawari_num[3] = 0; // 3 shanten
+    tegawari_num[4] = 0; // 4 shanten
+    tegawari_num[5] = 0; // 5 shanten
+    tegawari_num[6] = 0; // 6 shanten
+
+    cn_max_addition = 0; // Default
+    enumerate_restriction = 30000; // Default-ish
+    enumerate_restriction_fp = 30000; // Default-ish
+    tsumo_enumerate_always = 2000; // Default-ish
+    tsumo_enumerate_fuuro_restriction = 20000; // Default-ish
+    tsumo_enumerate_restriction = 10000; // Default-ish
+
+    // Potentially be more aggressive in pushing, even if others reach
+    norisk_ratio_if_other_reach = 0.1; // Slightly higher than default 0.0
+    inclusive_sn_other_reach = 3; // More willing to use aggressive calculation if other reach
+}
+
+// Strategy focused on defensive play, particularly in the late game or when opponents pose a threat (e.g., have declared reach).
+// Prioritizes minimizing risk of dealing into opponents' hands (betaori) and being more cautious with discards.
+void Tactics::set_defensive_late_game(){
+    set_common(); // Start with common defaults
+
+    // Prioritize safety, especially against reached opponents or late game
+    betaori_compare_at_2fuuro = true; // Start considering betaori sooner if opponent has 2+ fuuro
+    norisk_ratio_if_other_reach = 0.0; // Default, be cautious
+
+    // Rely less on aggressive calculations when others are reaching or it's a fuuro phase for them
+    inclusive_sn_other_reach = 1;
+    inclusive_sn_fp_other_reach = 1;
+
+    // Be more sensitive to last discards from others
+    last_tedashi_neighbor_coeff = 1.2;
+
+    // Adjust jun_pt to heavily avoid 4th place if that's a goal, or be more conservative
+    jun_pt[0] = 80;  // Standard
+    jun_pt[1] = 20;  // Standard
+    jun_pt[2] = -40; // More penalty for 3rd
+    jun_pt[3] = -120;// Heavily penalize 4th
+
+    // Standard tegawari and enumeration, focus is on risk assessment
+    tegawari_num[0] = 2;
+    tegawari_num[1] = 2;
+    tegawari_num[2] = 1;
+    tegawari_num[3] = 1;
+    tegawari_num[4] = 0;
+    tegawari_num[5] = 0;
+    tegawari_num[6] = 0;
+
+    fuuro_num_max = 3; // Standard
+    cn_max_addition = 0; // Standard
+    enumerate_restriction = -1; // Standard
+    enumerate_restriction_fp = -1; // Standard
+    tsumo_enumerate_always = -1; // Standard
+    tsumo_enumerate_fuuro_restriction = -1; // Standard
+    tsumo_enumerate_restriction = 20000; // Standard
+}
+
 void Tactics::set_from_json(const json11::Json& input_json) {
          if (input_json["base"] == "minimum") { set_zero_first(); }
 	else if (input_json["base"] == "light") { set_light(); }
 	else if (input_json["base"] == "default") { set_default(); }
-	else { assert_with_out(false, "tactics input_json base error!"); }
+    else if (input_json["base"] == "aggressive_early") { set_aggressive_early_game(); }
+    else if (input_json["base"] == "defensive_late") { set_defensive_late_game(); }
+	else { assert_with_out(false, "tactics input_json base error: Unknown base strategy provided!"); }
 
     if (!input_json["use_ori_exp_at_dp_fuuro"].is_null()) { use_ori_exp_at_dp_fuuro = input_json["use_ori_exp_at_dp_fuuro"].bool_value(); }
     if (!input_json["do_ankan_inclusive"].is_null()) { do_ankan_inclusive = input_json["do_ankan_inclusive"].bool_value(); }
