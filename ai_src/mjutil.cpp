@@ -27,9 +27,14 @@ float my_logit(const float x) {
 }
 
 void read_parameters(float* w, const int NPara, const std::string& file_name) {
+	std::string actual_file_path = file_name;
+	if (file_name.rfind("params/", 0) == 0) { // Check if it starts with "params/"
+		actual_file_path = get_executable_dir() + file_name;
+	}
+
 	FILE *fp;
-	fp = fopen(file_name.c_str(), "r");
-	assert_with_out(fp != NULL, "read_parameters file_not_found:" + file_name);
+	fp = fopen(actual_file_path.c_str(), "r");
+	assert_with_out(fp != NULL, "read_parameters actual_file_not_found:" + actual_file_path);
 
 	int idx = 0;
 	double tmpd;
@@ -40,7 +45,7 @@ void read_parameters(float* w, const int NPara, const std::string& file_name) {
 			break;
 		}
 	}
-	assert_with_out(idx == NPara, "read_parameters_error:" + file_name);
+	assert_with_out(idx == NPara, "read_parameters_error:" + actual_file_path);
 	fclose(fp);
 }
 
