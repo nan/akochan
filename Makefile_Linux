@@ -1,6 +1,6 @@
 COMPILER = g++
 CFLAGS = -g -MMD -MP -std=c++11 -O3 -fopenmp -pthread 
-WFLAGS = -pedantic -Wignored-qualifiers -Wreturn-type -Wmaybe-uninitialized -Wbool-compare -Wshadow -Wunused-but-set-variable -Wunused-variable
+# WFLAGS = -pedantic -Wignored-qualifiers -Wreturn-type -Wmaybe-uninitialized -Wbool-compare -Wshadow -Wunused-but-set-variable -Wunused-variable
 
 OPTGTK = 
 
@@ -25,7 +25,7 @@ SHARE_DEPENDS = $(SHARE_OBJECTS:.o=.d)
 HEADERS = $(SOURCES:.cpp=.hpp)
 SHARE_HEADERS = $(SHARE_SOURCES:.cpp=.hpp)
 
-TARGET = system.exe
+TARGET = akochan
 
 # Add libai.a as a prerequisite and link it directly.
 # Ensure CFLAGS (which include -pthread and -fopenmp) are used in linking.

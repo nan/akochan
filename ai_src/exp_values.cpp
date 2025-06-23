@@ -1,4 +1,5 @@
 #include "exp_values.hpp"
+#include "../main.hpp" // For get_executable_dir()
 
 extern const bool out_console;
 extern const std::array<json11::Json, 4> tactics_json;
@@ -23,7 +24,7 @@ int cal_tsumo_num_exp(const int my_pid, const Game_State& game_state, const int 
 	} else if (tactics_json[my_pid]["tsumo_num_est"] == "ako") {
 		const int acn = std::min(std::max(1, (int)game_state.player_state[my_pid].kawa.size()), 16);
 		float w[4]; float x[4] = {}; int rp = 0;
-		const std::string file_name = "params/tsumo_num/ako/para" + std::to_string(acn) + "_4000.txt";
+		const std::string file_name = get_executable_dir() + "params/tsumo_num/ako/para" + std::to_string(acn) + "_4000.txt";
 		read_parameters(w, 4, file_name);
 
 		float tp = 1.0;
@@ -69,7 +70,7 @@ float cal_my_agari_prob(const int my_pid, const Moves& game_record, const float 
 	} else if (tactics_json[my_pid]["agari_prob_est"].string_value() == "ako") {
 		// ako to do ako で使っているlightの時のモデルは異なるもの。
 		const int act_num = (int)game_state.player_state[my_pid].kawa.size() + dahai_inc;
-		const std::string file_name = "params/agari_prob/ako/agari_para" + std::to_string(std::max(1, std::min(act_num,15))) + ".txt";
+		const std::string file_name = get_executable_dir() + "params/agari_prob/ako/agari_para" + std::to_string(std::max(1, std::min(act_num,15))) + ".txt";
 		float w[4];
 		read_parameters(w, 4, file_name);
 
@@ -108,15 +109,15 @@ float cal_ryuukyoku_prob(const int my_pid, const Game_State& game_state, const f
 		std::string file_name;
 		if (act_num <= 6) {
 			if (game_state.player_state[my_pid].reach_declared) { 
-				file_name = "params/ryukyoku_prob/ako/reach_para1_6_200.txt";
+				file_name = get_executable_dir() + "params/ryukyoku_prob/ako/reach_para1_6_200.txt";
 			} else {
-				file_name = "params/ryukyoku_prob/ako/para1_6_4000.txt";
+				file_name = get_executable_dir() + "params/ryukyoku_prob/ako/para1_6_4000.txt";
 			}
 		} else {
 			if (game_state.player_state[my_pid].reach_declared) {
-				file_name = "params/ryukyoku_prob/ako/reach_para" + std::to_string(std::min(act_num, 18)) + "_200.txt";
+				file_name = get_executable_dir() + "params/ryukyoku_prob/ako/reach_para" + std::to_string(std::min(act_num, 18)) + "_200.txt";
 			} else {
-				file_name = "params/ryukyoku_prob/ako/para" + std::to_string(std::min(act_num, 18)) + "_4000.txt";
+				file_name = get_executable_dir() + "params/ryukyoku_prob/ako/para" + std::to_string(std::min(act_num, 18)) + "_4000.txt";
 			}
 		}
 		float w[4];
@@ -161,7 +162,7 @@ float cal_my_keiten_prob(const int my_pid, const Game_State& game_state,  const 
 			}
 		} else if (tactics_json[my_pid]["my_keiten_prob_est"] == "ako") {
 			const int act_num = (int)game_state.player_state[my_pid].kawa.size() + dahai_inc;
-			const std::string file_name = "params/my_keiten_prob/ako/para" + std::to_string(std::min(act_num, 17)) + "_4000.txt";
+			const std::string file_name = get_executable_dir() + "params/my_keiten_prob/ako/para" + std::to_string(std::min(act_num, 17)) + "_4000.txt";
 			float w[3];
 			read_parameters(w, 3, file_name);
 
@@ -185,7 +186,7 @@ float cal_other_keiten_prob(const int my_pid, const int target_pid, const Game_S
 			return 0.5;
 		} else if (tactics_json[my_pid]["other_keiten_prob_est"] == "ako") {
 			const int act_num = (int)game_state.player_state[my_pid].kawa.size() + dahai_inc;
-			const std::string file_name = "params/other_keiten_prob/ako/para" + std::to_string(std::min(act_num, 17)) + "_4000.txt";
+			const std::string file_name = get_executable_dir() + "params/other_keiten_prob/ako/para" + std::to_string(std::min(act_num, 17)) + "_4000.txt";
 			float w[2], x[2];
 			read_parameters(w, 2, file_name);
 
@@ -250,7 +251,7 @@ std::array<std::array<float, 4>, 4> cal_target_prob(const int my_pid, const std:
 	} else if (tactics_json[my_pid]["houjuu_est"] == "ako") {
 		float w[3], x[3]; x[0] = 1.0;
 		const int act_num = (int)game_state.player_state[my_pid].kawa.size() + dahai_inc;
-		std::string file_name = "params/houjuu_prob/ako/para" + std::to_string(std::max(6, std::min(act_num, 14))) + "_4000.txt";
+		std::string file_name = get_executable_dir() + "params/houjuu_prob/ako/para" + std::to_string(std::max(6, std::min(act_num, 14))) + "_4000.txt";
 		read_parameters(w, 3, file_name);
 
 		for (int pid1 = 0; pid1 < 4; pid1++) {
@@ -360,8 +361,8 @@ std::array<float, 5> cal_kyoku_result_prob(const int my_pid, const Game_State& g
 		const int act_num = game_state.player_state[my_pid].kawa.size() + dahai_inc;
 		float w[21];
 		const std::string file_name = (act_num <= 7) ?
-			"params/result_other/ako/para1_6_4000.txt":
-			"params/result_other/ako/para" + std::to_string(std::min(act_num, 17)) + "_4000.txt";
+			get_executable_dir() + "params/result_other/ako/para1_6_4000.txt":
+			get_executable_dir() + "params/result_other/ako/para" + std::to_string(std::min(act_num, 17)) + "_4000.txt";
 		read_parameters(w, 21, file_name);
 		float x[7];
 		x[0] = 1.0;
@@ -492,7 +493,7 @@ float cal_betaori_exp(
 		Betaori betaori = cal_betaori(tehai_tmp, betaori_houjuu_hai_prob, total_houjuu_hai_value, other_end_value, passive_ryuukyoku_value, tsumo_num_exp);
 		float w[3];
 		const int act_num = std::min(std::max(2, (int)game_state.player_state[my_pid].kawa.size()), 18); // akoの方はkawa.size()+1になっていないのでそうする。
-		const std::string file_name = "params/betaori/ako/betaori_houjuu_para" + std::to_string(act_num) + "_3000.txt";
+		const std::string file_name = get_executable_dir() + "params/betaori/ako/betaori_houjuu_para" + std::to_string(act_num) + "_3000.txt";
 		read_parameters(w, 3, file_name);
 		betaori.modify_betaori_value_with_ryuukyoku_ako(game_state.player_state[my_pid].fuuro.size(), w, passive_ryuukyoku_prob);
 		return betaori.betaori_exp;

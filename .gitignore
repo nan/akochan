@@ -1,7 +1,6 @@
 .vscode
 ai.dll
 ai_src/ai.dll
-system.exe
 obj/*
 share/obj/*
 ai_src/obj/*
@@ -12,3 +11,4 @@ raw_log
 match_result*
 ai_src/libai.a
 libai.a
+akochan

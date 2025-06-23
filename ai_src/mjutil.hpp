@@ -2,6 +2,8 @@
 
 #include "../share/include.hpp"
 #include "../share/types.hpp"
+#include "../main.hpp" // For get_executable_dir()
+#include <string>     // For std::string in read_parameters
 
 int factorial (int x);
 int combination (int n, int k);
